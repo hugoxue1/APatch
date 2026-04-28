@@ -90,13 +90,20 @@ private fun createMainRootShell() : Shell {
             builder.build()
         } catch (e: Throwable) {
             Log.e(TAG, "retry kpatch su failed: ", e)
-            builder.setCommands("su")
+            // [CKB-MOD] cu -> su -> sh fallback chain (cu = su path alias)
+            builder.setCommands("/system/bin/cu")
             try {
                 builder.build()
             } catch (e: Throwable) {
-                Log.e(TAG, "retry su failed: ", e)
-                builder.setCommands("sh")
-                builder.build()
+                Log.e(TAG, "retry cu failed: ", e)
+                builder.setCommands("su")
+                try {
+                    builder.build()
+                } catch (e: Throwable) {
+                    Log.e(TAG, "retry su failed: ", e)
+                    builder.setCommands("sh")
+                    builder.build()
+                }
             }
         }
     }
@@ -173,11 +180,17 @@ fun tryGetRootShell(): Shell {
         } catch (e: Throwable) {
             Log.e(TAG, "retry kpatch su failed: ", e)
             return try {
-                Log.e(TAG, "retry su: ", e)
-                builder.build("su")
+                // [CKB-MOD] cu -> su -> sh fallback
+                Log.e(TAG, "retry cu: ", e)
+                builder.build("/system/bin/cu")
             } catch (e: Throwable) {
-                Log.e(TAG, "retry su failed: ", e)
-                builder.build("sh")
+                Log.e(TAG, "retry cu failed: ", e)
+                try {
+                    builder.build("su")
+                } catch (e: Throwable) {
+                    Log.e(TAG, "retry su failed: ", e)
+                    builder.build("sh")
+                }
             }
         }
     }

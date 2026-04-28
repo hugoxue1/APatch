@@ -346,8 +346,10 @@ class PatchesViewModel : ViewModel() {
         }
     }
     fun isSuExecutable(): Boolean {
+        // [CKB-MOD] 同时检测 cu 和 su：首次刷机时 cu 还不存在，需用 su 判断
+        val cuFile = File("/system/bin/cu")
         val suFile = File("/system/bin/su")
-        return suFile.exists() && suFile.canExecute()
+        return (cuFile.exists() && cuFile.canExecute()) || (suFile.exists() && suFile.canExecute())
     }
     fun doPatch(mode: PatchMode, useKey: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {

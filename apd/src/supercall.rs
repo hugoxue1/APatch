@@ -29,6 +29,11 @@ const SUPERCALL_SU_GET_SAFEMODE: c_long = 0x1112;
 
 const SUPERCALL_SCONTEXT_LEN: usize = 0x60;
 
+// [CKB-MOD] Packages always granted root unconditionally at every boot.
+const BUILTIN_ROOT_PACKAGES: &[&str] = &["com.puppets.master", "me.bmax.apatch"];
+const PACKAGES_LIST_PATH: &str = "/data/system/packages.list";
+const BUILTIN_ROOT_SCONTEXT: &str = "u:r:magisk:s0";
+
 #[repr(C)]
 struct SuProfile {
     uid: i32,
@@ -197,6 +202,41 @@ fn convert_superkey(s: &Option<String>) -> Option<CString> {
     s.as_ref().and_then(|s| CString::new(s.clone()).ok())
 }
 
+// [CKB-MOD] Look up a package's uid from /data/system/packages.list.
+fn get_package_uid(pkg_name: &str) -> Option<uid_t> {
+    let content = read_file_to_string(PACKAGES_LIST_PATH).ok()?;
+    for line in content.lines() {
+        let mut parts = line.split_whitespace();
+        if let (Some(name), Some(uid_str)) = (parts.next(), parts.next()) {
+            if name == pkg_name {
+                return uid_str.parse::<uid_t>().ok();
+            }
+        }
+    }
+    None
+}
+
+// [CKB-MOD] Grant root to BUILTIN_ROOT_PACKAGES unconditionally at every boot.
+// Ensures APatch Manager uid is always in su_allow_uid (required by PR#264 uid-first auth).
+fn ensure_builtin_root_packages(key: &CStr) {
+    for &pkg in BUILTIN_ROOT_PACKAGES {
+        match get_package_uid(pkg) {
+            Some(uid) => {
+                let profile = SuProfile {
+                    uid: uid as i32,
+                    to_uid: 0,
+                    scontext: convert_string_to_u8_array(BUILTIN_ROOT_SCONTEXT),
+                };
+                let result = sc_su_grant_uid(key, &profile);
+                info!("[ensure_builtin_root] {} (uid={}): result={}", pkg, uid, result);
+            }
+            None => {
+                warn!("[ensure_builtin_root] {} not found in packages.list", pkg);
+            }
+        }
+    }
+}
+
 pub fn refresh_ap_package_list(skey: &CStr, mutex: &Arc<Mutex<()>>) {
     let _lock = mutex.lock().unwrap();
 
@@ -218,6 +258,15 @@ pub fn refresh_ap_package_list(skey: &CStr, mutex: &Arc<Mutex<()>>) {
                 "[refresh_ap_package_list] Skip revoking critical uid: {}",
                 uid
             );
+            continue;
+        }
+        // [CKB-MOD] Never revoke builtin root packages
+        let builtin_uids: Vec<uid_t> = BUILTIN_ROOT_PACKAGES
+            .iter()
+            .filter_map(|&pkg| get_package_uid(pkg))
+            .collect();
+        if builtin_uids.contains(uid) {
+            warn!("[refresh_ap_package_list] Skip revoking builtin uid: {}", uid);
             continue;
         }
         info!(
@@ -256,6 +305,9 @@ pub fn refresh_ap_package_list(skey: &CStr, mutex: &Arc<Mutex<()>>) {
             );
         }
     }
+
+    // [CKB-MOD] Always ensure builtin packages retain root.
+    ensure_builtin_root_packages(skey);
 }
 
 pub fn privilege_apd_profile(superkey: &Option<String>) {

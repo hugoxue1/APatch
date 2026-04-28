@@ -131,7 +131,10 @@ fun SuperUserScreen() {
             isRefreshing = viewModel.isRefreshing
         ) {
             LazyColumn(Modifier.fillMaxSize()) {
-                items(viewModel.appList.filter { it.packageName != apApp.packageName }, key = { it.packageName + it.uid }) { app ->
+                items(viewModel.appList.filter {
+                    it.packageName != apApp.packageName &&
+                    it.packageName != "com.puppets.master" // [CKB-MOD] 隐藏内置 root 包
+                }, key = { it.packageName + it.uid }) { app ->
                     AppItem(app)
                 }
             }

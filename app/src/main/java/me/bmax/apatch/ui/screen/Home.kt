@@ -681,7 +681,8 @@ private fun InfoCard(kpState: APApplication.State, apState: APApplication.State)
                 )
 
                 Spacer(Modifier.height(16.dp))
-                InfoCardItem(stringResource(R.string.home_su_path), Natives.suPath())
+                // [CKB-MOD] 隐藏 SU 路径显示（cu 路径伪装，不暴露给用户）
+                // InfoCardItem(stringResource(R.string.home_su_path), Natives.suPath())
 
                 Spacer(Modifier.height(16.dp))
             }

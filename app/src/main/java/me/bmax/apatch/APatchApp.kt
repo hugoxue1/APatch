@@ -72,7 +72,7 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler {
         const val MAGISK_SCONTEXT = "u:r:magisk:s0"
 
         private const val DEFAULT_SU_PATH = "/system/bin/kp"
-        private const val LEGACY_SU_PATH = "/system/bin/su"
+        private const val LEGACY_SU_PATH = "/system/bin/cu" // [CKB-MOD] su 路径伪装为 cu
 
         const val SP_NAME = "config"
         private const val SHOW_BACKUP_WARN = "show_backup_warning"
@@ -150,7 +150,7 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler {
 
                 "touch $PACKAGE_CONFIG_FILE",
                 "touch $SU_PATH_FILE",
-                "[ -s $SU_PATH_FILE ] || echo $LEGACY_SU_PATH > $SU_PATH_FILE",
+                "echo $LEGACY_SU_PATH > $SU_PATH_FILE", // [CKB-MOD] 强制写入 cu 路径，不做空判断
                 "echo ${Version.getManagerVersion().second} > $APATCH_VERSION_PATH",
                 "restorecon -R $APATCH_FOLDER",
 
@@ -253,15 +253,16 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler {
             exitProcess(0)
         }
 
-        if (!BuildConfig.DEBUG && !verifyAppSignature("1x2twMoHvfWUODv7KkRRNKBzOfEqJwRKGzJpgaz18xk=")) {
-            while (true) {
-                val intent = Intent(Intent.ACTION_DELETE)
-                intent.data = "package:$packageName".toUri()
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                intent.addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
-                startActivity(intent)
-                exitProcess(0)
-            }
+        if (!BuildConfig.DEBUG && !verifyAppSignature("Skmi90SgGZN/TeRXBsRokD1zc9FrEdaW7Gp8Z1T85yg=")) {
+            // [CKB-MOD] 使用 ApatchMaster.jks 签名，私有 fork 无需防篡改逻辑
+            // while (true) {
+            //     val intent = Intent(Intent.ACTION_DELETE)
+            //     intent.data = "package:$packageName".toUri()
+            //     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            //     intent.addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
+            //     startActivity(intent)
+            //     exitProcess(0)
+            // }
         }
 
         // TODO: We can't totally protect superkey from be stolen by root or LSPosed-like injection tools in user space, the only way is don't use superkey,

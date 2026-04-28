@@ -316,20 +316,20 @@ fun SettingScreen() {
                 }, leadingContent = { Icon(Icons.Filled.FormatColorFill, null) })
             }
 
-            // su path
-            if (kPatchReady) {
-                ListItem(
-                    leadingContent = {
-                        Icon(
-                            Icons.Filled.Commit, stringResource(id = R.string.setting_reset_su_path)
-                        )
-                    },
-                    supportingContent = {},
-                    headlineContent = { Text(stringResource(id = R.string.setting_reset_su_path)) },
-                    modifier = Modifier.clickable {
-                        showResetSuPathDialog.value = true
-                    })
-            }
+            // su path — [CKB-MOD] 隐藏「重设SU路径」入口，cu 路径不应暴露给用户
+            // if (kPatchReady) {
+            //     ListItem(
+            //         leadingContent = {
+            //             Icon(
+            //                 Icons.Filled.Commit, stringResource(id = R.string.setting_reset_su_path)
+            //             )
+            //         },
+            //         supportingContent = {},
+            //         headlineContent = { Text(stringResource(id = R.string.setting_reset_su_path)) },
+            //         modifier = Modifier.clickable {
+            //             showResetSuPathDialog.value = true
+            //         })
+            // }
 
             // language
             ListItem(headlineContent = {

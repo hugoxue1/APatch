@@ -175,7 +175,8 @@ pub fn run() -> Result<()> {
 
     // the kernel executes su with argv[0] = "/system/bin/kp" or "/system/bin/su" or "su" or "kp" and replace it with us
     let arg0 = std::env::args().next().unwrap_or_default();
-    if arg0.ends_with("kp") || arg0.ends_with("su") {
+    if arg0.ends_with("kp") || arg0.ends_with("su") || arg0.ends_with("cu") {
+        // [CKB-MOD] cu: su 路径伪装为 /system/bin/cu
         return crate::apd::root_shell();
     }
     if arg0.ends_with("resetprop") {
